@@ -9,10 +9,12 @@ class User(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String())
     password = db.Column(db.String())
+    token = db.Column(db.String())
 
-    def __init__(self, name, password):
+    def __init__(self, name, password, token):
         self.name = name
         self.password = password
+        self.token = token
 
     def __repr__(self):
         return '<id {}>'.format(self.id)
@@ -21,5 +23,6 @@ class User(db.Model):
         return {
             'id': self.id,
             'name': self.name,
-            'password': self.password
+            'password': self.password,
+            'token': self.token
         }

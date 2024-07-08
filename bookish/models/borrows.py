@@ -1,3 +1,5 @@
+from datetime import datetime
+
 from sqlalchemy import ForeignKey
 
 from bookish.app import db
@@ -13,7 +15,7 @@ class Borrows(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     id_user = db.Column(db.Integer, ForeignKey(User.id))
     isbn = db.Column(db.String(), ForeignKey(Book.isbn))
-    return_date = db.Column(db.Date())
+    return_date = db.Column(db.DateTime, default=datetime.utcnow())
 
     def __init__(self, id_user, isbn, return_date):
         self.id_user = id_user
