@@ -90,7 +90,7 @@ def bookish_routes(app):
         if type(books) is Exception:
             return {"error": books}
 
-        return {"books": sorted(get_every(books), key=itemgetter("Title"))}
+        return {"books": format_books_output(get_every(books), get_params())}
 
     @app.route('/search_books', methods=['GET'])
     def handle_search_books():
@@ -101,8 +101,9 @@ def bookish_routes(app):
             if type(books) is Exception:
                 return {"error": books}
 
-            return {"books": search_book(book_searched, books)}
+            return {"books": format_books_output(search_book(book_searched, books), get_params())}
         else:
+
             return {"error": "The request payload is not in JSON format"}
 
     @app.route('/delete_book', methods=['DELETE'])

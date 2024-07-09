@@ -1,3 +1,5 @@
+from operator import itemgetter
+
 from flask import request
 
 from bookish.models.book import Book
@@ -6,7 +8,7 @@ from bookish.models.borrows import Borrows
 from bookish.models.user import User
 import jwt
 from datetime import datetime, timedelta
-
+from bookish.services.error_handler import *
 
 def get_every(table):
     return [line.serialize() for line in table]
@@ -15,28 +17,25 @@ def get_every(table):
 def verify_token(user_token):
     try:
         user_id = jwt.decode(user_token, "secret", algorithms=["HS256"])
-    except Exception as e:
-        return {"error": str(e)}
+    except:
+        raise BadToken()
     return user_id["id"]
 
 
 def add_user(user_data):
     user = User.query.filter_by(name=user_data["name"], password=user_data["password"]).first()
     if user:
-        return {"error": "User already exists"}
+        raise Conflict()
 
-    try:
-        new_user = User(name=user_data['name'], password=user_data['password'], token="0")
-    except Exception as e:
-        return {"error": str(e)}
+    new_user = User(name=user_data['name'], password=user_data['password'], token="0")
 
     try:
         db.session.add(new_user)
         db.session.commit()
-    except Exception as e:
-        return {"error": str(e)}
+    except:
+        raise InternalServerError()
 
-    return {"message": "New user has been created successfully."}
+    raise Created("user")
 
 
 def login_user(user_login):
@@ -47,7 +46,7 @@ def login_user(user_login):
         db.session.commit()
         return {"message": "User has logged in successfully. Generated token: {}".format(user.token)}
     except:
-        return {"error": "User doesn't exist. Try signing up."}
+        raise NotFound("User")
 
 
 def logout_user(user_token):
@@ -61,7 +60,7 @@ def logout_user(user_token):
         db.session.commit()
         return {"message": "User has logged out successfully."}
     except:
-        return {"error": "User doesn't exist. Try logging in."}
+        raise NotFound("User")
 
 
 def delete_user(user_token):
@@ -76,22 +75,19 @@ def delete_user(user_token):
         db.session.commit()
         return {"message": "User has logged out successfully (for a very long time :D)."}
     except:
-        return {"error": "User doesn't exist. Try signing up."}
+        raise NotFound("User")
 
 
 def add_book(book_added):
-    try:
-        new_book = Book(isbn=book_added['isbn'], title=book_added['title'], author=book_added['author'],
-                        copies=book_added['copies'], available=book_added['copies'])
-    except Exception as e:
-        return {"error": str(e)}
+    new_book = Book(isbn=book_added['isbn'], title=book_added['title'], author=book_added['author'],
+                    copies=book_added['copies'], available=book_added['copies'])
 
     try:
         db.session.add(new_book)
         db.session.commit()
-        return {"message": "New book has been added successfully."}
-    except Exception as e:
-        return {"error": str(e)}
+        raise Created("book")
+    except:
+        raise InternalServerError()
 
 
 def delete_book(book_deleted):
@@ -105,7 +101,7 @@ def delete_book(book_deleted):
         db.session.commit()
         return {"message": "Book has been deleted successfully."}
     except:
-        return {"error": "Book with given ISBN is not in the library"}
+        raise NotFound("Book with given ISBN")
 
 
 def borrow_book(book_borrowed, user_token):
@@ -115,7 +111,7 @@ def borrow_book(book_borrowed, user_token):
 
     user = User.query.filter_by(id=user_id).first()
     if user is None:
-        return {"error": "User doesn't exist or isn't logged in."}
+        raise NotFound("User")
 
     book = Book.query.filter_by(isbn=book_borrowed['isbn']).first()
     print(book)
@@ -127,10 +123,10 @@ def borrow_book(book_borrowed, user_token):
             book.available -= 1
             db.session.commit()
             return {"message": "Book borrowed successfully."}
-        except Exception as e:
-            return {"error": str(e)}
+        except:
+            raise InternalServerError()
 
-    return {"error": "Book with given ISBN is not in the library"}
+    raise NotFound("Book with given ISBN")
 
 
 def get_user_borrows(user_token):
@@ -148,7 +144,7 @@ def return_book(book_returned, user_token):
 
     user = User.query.filter_by(id=user_id).first()
     if user is None:
-        return {"error": "User doesn't exist or isn't logged in."}
+        raise NotFound("User")
     print(user)
 
     book = Book.query.filter_by(isbn=book_returned['isbn']).first()
@@ -161,10 +157,10 @@ def return_book(book_returned, user_token):
             db.session.delete(book_borrowed)
             db.session.commit()
             return {"message": "Book returned successfully."}
-        except Exception as e:
-            return {"error": str(e)}
+        except:
+            raise InternalServerError()
 
-    return {"error": "Book with given ISBN is not in the library"}
+    raise NotFound("Book with given ISBN")
 
 
 def search_book(book_searched, books):
@@ -175,3 +171,24 @@ def search_book(book_searched, books):
     return get_every(books)
 
 
+def get_params():
+    param_order = request.args.get("order")
+    param_limit = request.args.get("limit")
+
+    params = {"order": param_order if param_order else "ASC",
+              "limit": int(param_limit) if (param_limit and param_limit.isnumeric()) else -1}
+
+    return params
+
+
+def format_books_output(books, params):
+    if params["order"] == "ASC":
+        output = sorted(books, key=itemgetter("Title"))
+    elif params["order"] == "DESC":
+        output = sorted(books, key=itemgetter("Title"), reverse=True)
+    else:
+        raise BadRequest()
+
+    if params["limit"] != -1:
+        return output[:params["limit"]]
+    return output

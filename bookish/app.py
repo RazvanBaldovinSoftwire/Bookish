@@ -2,6 +2,7 @@ import os
 from flask import Flask
 from bookish.models import db, migrate
 from bookish.controllers import register_controllers
+from bookish.services.error_handler import *
 
 
 def create_app():
@@ -14,6 +15,13 @@ def create_app():
     migrate.init_app(app, db)
 
     register_controllers(app)
+
+    app.register_error_handler(BadToken, lambda x: x)
+    app.register_error_handler(Conflict, lambda x: x)
+    app.register_error_handler(InternalServerError, lambda x: x)
+    app.register_error_handler(NotFound, not_found)
+    app.register_error_handler(BadRequest, lambda x: x)
+    app.register_error_handler(Created, created)
 
     if __name__ == "__main__":
         app.run()
