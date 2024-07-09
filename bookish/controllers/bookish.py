@@ -1,3 +1,5 @@
+from operator import itemgetter
+
 from bookish.models.example import Example
 from bookish.services.bookish import *
 
@@ -40,7 +42,7 @@ def bookish_routes(app):
 
         if type(users) is Exception:
             return {"error": users}
-        return {"users": get_every(users)}
+        return {"users": sorted(get_every(users), key=itemgetter("Name"))}
 
     @app.route('/signup', methods=['POST'])
     def handle_signup():
@@ -88,7 +90,20 @@ def bookish_routes(app):
         if type(books) is Exception:
             return {"error": books}
 
-        return {"books": get_every(books)}
+        return {"books": sorted(get_every(books), key=itemgetter("Title"))}
+
+    @app.route('/search_books', methods=['GET'])
+    def handle_search_books():
+        if request.is_json:
+            book_searched = request.get_json()
+            books = get_database(Book)
+
+            if type(books) is Exception:
+                return {"error": books}
+
+            return {"books": search_book(book_searched, books)}
+        else:
+            return {"error": "The request payload is not in JSON format"}
 
     @app.route('/delete_book', methods=['DELETE'])
     def handle_delete_book():
@@ -113,7 +128,12 @@ def bookish_routes(app):
         if type(borrowed_books) is Exception:
             return {"error": borrowed_books}
 
-        return {"books": get_every(borrowed_books)}
+        return {"borrowed_books": get_every(borrowed_books)}
+
+    @app.route('/get_borrows_by_user', methods=['GET'])
+    def handle_get_borrowed_books_by_user():
+        user_token = request.headers.get('Authorization')
+        return {"borrowed_books": get_user_borrows(user_token)}
 
     @app.route('/return_book', methods=['POST'])
     def handle_return_book():

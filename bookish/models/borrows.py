@@ -23,9 +23,13 @@ class Borrows(db.Model):
         self.return_date = return_date
 
     def serialize(self):
+        user = User.query.get(self.id_user)
+        book = Book.query.get(self.isbn)
+
         return {
             'Borrow ID': self.id,
-            'User ID': self.id_user,
-            'ISBN Book': self.isbn,
+            'User name': user.name,
+            'Book Title': book.title,
+            'Book Author': book.author,
             'Return Date': self.return_date
         }

@@ -133,6 +133,14 @@ def borrow_book(book_borrowed, user_token):
     return {"error": "Book with given ISBN is not in the library"}
 
 
+def get_user_borrows(user_token):
+    user_id = verify_token(user_token)
+    if type(user_id) is not int:
+        return user_id
+
+    borrowed_books = Borrows.query.filter_by(id_user=user_id).all()
+    return get_every(borrowed_books)
+
 def return_book(book_returned, user_token):
     user_id = verify_token(user_token)
     if type(user_id) is not int:
@@ -157,3 +165,13 @@ def return_book(book_returned, user_token):
             return {"error": str(e)}
 
     return {"error": "Book with given ISBN is not in the library"}
+
+
+def search_book(book_searched, books):
+    if "title" in book_searched:
+        books = [book for book in books if book.title == book_searched["title"]]
+    if "author" in book_searched:
+        books = [book for book in books if book.author == book_searched["author"]]
+    return get_every(books)
+
+
