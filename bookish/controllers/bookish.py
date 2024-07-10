@@ -30,15 +30,9 @@ def bookish_routes(app):
                 } for example in examples]
             return {"examples": results}
 
-    def get_database(database):
-        try:
-            return database.query.all()
-        except Exception as e:
-            return e
-
     @app.route('/get_users', methods=['GET'])
     def handle_get_users():
-        users = get_database(User)
+        users = get_table(User)
 
         if type(users) is Exception:
             return {"error": users}
@@ -85,7 +79,7 @@ def bookish_routes(app):
 
     @app.route('/get_books', methods=['GET'])
     def handle_get_books():
-        books = get_database(Book)
+        books = get_table(Book)
 
         if type(books) is Exception:
             return {"error": books}
@@ -95,36 +89,36 @@ def bookish_routes(app):
     @app.route('/search_books', methods=['GET'])
     def handle_search_books():
         if request.is_json:
-            book_searched = request.get_json()
-            books = get_database(Book)
+            book_search = request.get_json()
+            books = get_table(Book)
 
             if type(books) is Exception:
                 return {"error": books}
 
-            return {"books": format_books_output(search_book(book_searched, books), get_params())}
+            return {"books": format_books_output(search_book(book_search, books), get_params())}
         else:
 
             return {"error": "The request payload is not in JSON format"}
 
     @app.route('/delete_book', methods=['DELETE'])
     def handle_delete_book():
-        book_deleted = request.get_json()
+        book_delete = request.get_json()
 
-        return delete_book(book_deleted)
+        return delete_book(book_delete)
 
     @app.route('/borrow_book', methods=['POST'])
     def handle_borrow_book():
         if request.is_json:
-            book_borrowed = request.get_json()
+            book_borrowe = request.get_json()
             user_token = request.headers.get('Authorization')
 
-            return borrow_book(book_borrowed, user_token)
+            return borrow_book(book_borrowe, user_token)
         else:
             return {"error": "The request payload is not in JSON format"}
 
     @app.route('/get_borrows', methods=['GET'])
     def handle_get_borrowed_books():
-        borrowed_books = get_database(Borrows)
+        borrowed_books = get_table(Borrows)
 
         if type(borrowed_books) is Exception:
             return {"error": borrowed_books}
@@ -139,9 +133,9 @@ def bookish_routes(app):
     @app.route('/return_book', methods=['POST'])
     def handle_return_book():
         if request.is_json:
-            book_returned = request.get_json()
+            book_returne = request.get_json()
             user_token = request.headers.get('Authorization')
 
-            return return_book(book_returned, user_token)
+            return return_book(book_returne, user_token)
         else:
             return {"error": "The request payload is not in JSON format"}

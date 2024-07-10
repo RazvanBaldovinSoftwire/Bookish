@@ -10,6 +10,14 @@ import jwt
 from datetime import datetime, timedelta
 from bookish.services.error_handler import *
 
+
+def get_table(database):
+    try:
+        return database.query.all()
+    except Exception as e:
+        return e
+
+
 def get_every(table):
     return [line.serialize() for line in table]
 
@@ -51,8 +59,6 @@ def login_user(user_login):
 
 def logout_user(user_token):
     user_id = verify_token(user_token)
-    if type(user_id) is not int:
-        return user_id
 
     user = User.query.filter_by(id=user_id).first()
     try:
@@ -65,10 +71,11 @@ def logout_user(user_token):
 
 def delete_user(user_token):
     user_id = verify_token(user_token)
-    if type(user_id) is not int:
-        return user_id
 
     user = User.query.filter_by(id=user_id).first()
+    borrowed_books = Borrows.filter_by(id_user=user_id).all()
+    if not borrowed_books:
+        raise MethodNotAllowed()
 
     try:
         db.session.delete(user)
@@ -78,9 +85,9 @@ def delete_user(user_token):
         raise NotFound("User")
 
 
-def add_book(book_added):
-    new_book = Book(isbn=book_added['isbn'], title=book_added['title'], author=book_added['author'],
-                    copies=book_added['copies'], available=book_added['copies'])
+def add_book(book_add):
+    new_book = Book(isbn=book_add['isbn'], title=book_add['title'], author=book_add['author'],
+                    copies=book_add['copies'], available=book_add['copies'])
 
     try:
         db.session.add(new_book)
@@ -90,8 +97,8 @@ def add_book(book_added):
         raise InternalServerError()
 
 
-def delete_book(book_deleted):
-    book = Book.query.filter_by(isbn=book_deleted['isbn']).first()
+def delete_book(book_delete):
+    book = Book.query.filter_by(isbn=book_delete['isbn']).first()
 
     if book.available != book.copies:
         return {"error": "Book cannot be deleted. The books are still borrowed."}
@@ -104,20 +111,17 @@ def delete_book(book_deleted):
         raise NotFound("Book with given ISBN")
 
 
-def borrow_book(book_borrowed, user_token):
+def borrow_book(book_borrowe, user_token):
     user_id = verify_token(user_token)
-    if type(user_id) is not int:
-        return user_id
 
     user = User.query.filter_by(id=user_id).first()
     if user is None:
         raise NotFound("User")
 
-    book = Book.query.filter_by(isbn=book_borrowed['isbn']).first()
-    print(book)
+    book = Book.query.filter_by(isbn=book_borrowe['isbn']).first()
     if book and book.available > 0:
-        borrowed = Borrows(user.id, isbn=book_borrowed["isbn"],
-                           return_date=datetime.now() + timedelta(days=book_borrowed["days"]))
+        borrowed = Borrows(user.id, isbn=book_borrowe["isbn"],
+                           return_date=datetime.now() + timedelta(days=book_borrowe["days"]))
         try:
             db.session.add(borrowed)
             book.available -= 1
@@ -131,30 +135,23 @@ def borrow_book(book_borrowed, user_token):
 
 def get_user_borrows(user_token):
     user_id = verify_token(user_token)
-    if type(user_id) is not int:
-        return user_id
 
     borrowed_books = Borrows.query.filter_by(id_user=user_id).all()
     return get_every(borrowed_books)
 
-def return_book(book_returned, user_token):
+def return_book(book_returne, user_token):
     user_id = verify_token(user_token)
-    if type(user_id) is not int:
-        return user_id
 
     user = User.query.filter_by(id=user_id).first()
     if user is None:
         raise NotFound("User")
-    print(user)
 
-    book = Book.query.filter_by(isbn=book_returned['isbn']).first()
-    book_borrowed = Borrows.query.filter_by(isbn=book_returned['isbn'], id_user=user_id).first()
-    print(book)
-    print(book_borrowed)
+    book = Book.query.filter_by(isbn=book_returne['isbn']).first()
+    book_borrowed = Borrows.query.filter_by(isbn=book_returne['isbn'], id_user=user_id).first()
     if book and book_borrowed:
-        book.available += 1
         try:
             db.session.delete(book_borrowed)
+            book.available += 1
             db.session.commit()
             return {"message": "Book returned successfully."}
         except:
@@ -163,11 +160,11 @@ def return_book(book_returned, user_token):
     raise NotFound("Book with given ISBN")
 
 
-def search_book(book_searched, books):
-    if "title" in book_searched:
-        books = [book for book in books if book.title == book_searched["title"]]
-    if "author" in book_searched:
-        books = [book for book in books if book.author == book_searched["author"]]
+def search_book(book_searche, books):
+    if "title" in book_searche:
+        books = [book for book in books if book.title == book_searche["title"]]
+    if "author" in book_searche:
+        books = [book for book in books if book.author == book_searche["author"]]
     return get_every(books)
 
 

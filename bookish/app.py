@@ -22,6 +22,7 @@ def create_app():
     app.register_error_handler(NotFound, not_found)
     app.register_error_handler(BadRequest, lambda x: x)
     app.register_error_handler(Created, created)
+    app.register_error_handler(MethodNotAllowed, lambda x: x)
 
     if __name__ == "__main__":
         app.run()

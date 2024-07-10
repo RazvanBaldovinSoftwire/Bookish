@@ -3,17 +3,22 @@ import werkzeug
 
 class BadToken(werkzeug.exceptions.HTTPException):
     code = 498
-    description = 'Invalid Token'
+    description = 'User is not logged in.'
 
 
 class Conflict(werkzeug.exceptions.HTTPException):
     code = 409
-    description = 'User already exists'
+    description = 'User already exists.'
 
 
 class InternalServerError(werkzeug.exceptions.HTTPException):
     code = 500
     description = 'Action on database not permitted.'
+
+
+class MethodNotAllowed(werkzeug.exceptions.HTTPException):
+    code = 404
+    description = 'User hasn\'t returned the borrowed books yet'
 
 
 class NotFound(werkzeug.exceptions.HTTPException):
